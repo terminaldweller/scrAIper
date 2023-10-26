@@ -1,0 +1,47 @@
+version: "3.9"
+services:
+  scraiper:
+    build:
+      context: .
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+    image: scraiper
+    restart: unless-stopped
+    networks:
+      - scrapenet
+    cap_drop:
+      - ALL
+    env_file: .env
+  postgres:
+    image: postgres:16-alpine3.18
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+    ports:
+      - "[::1]:5432:5432/tcp"
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-behnoush}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-tolls}
+    env_file: .env
+    volumes:
+      - postgres-vault:/var/lib/postgresql/data
+      - ./scripts/:/docker-entrypoint-initdb.d/
+    networks:
+      - scrapenet
+volumes:
+  postgres-vault:
+networks:
+  scrapenet:
