@@ -25,6 +25,7 @@ WORKDIR /certs
 RUN openssl req -nodes -new -x509 -subj="/C=US/ST=Denial/L=springfield/O=Dis/CN=localhost" -keyout server.key -out server.cert
 
 FROM python-base as production
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5
 COPY --from=certbuilder /certs/ /certs
 COPY --from=builder-base $VENV_PATH $VENV_PATH
 COPY ./main.py $PYSETUP_PATH/main.py

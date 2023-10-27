@@ -3,14 +3,16 @@
 
 import argparse
 import csv
+import enum
 import logging
 import os
 import sys
 import typing
 
+import openai
 import psycopg
 import psycopg_pool
-import openai
+import pydantic
 from scrapeghost import SchemaScraper
 
 
@@ -30,20 +32,64 @@ class Argparser:  # pylint: disable=too-few-public-methods
         self.args = parser.parse_args()
 
 
-def read_csvfile(
-    path: str,
-) -> typing.Tuple[typing.List[str], typing.List[str]]:
+class Toll_Facilitie_Model(pydantic.BaseModel):
+    Country: str
+    IBTAA_Facility: str
+    IBTTA_TollOperator: str
+    Facility_Type: str
+    Interstate: bool
+    FacilityOpenDate: str
+    IBTTA_Center_Miles: pydantic.positive_float
+    Ort: bool
+    Cash: bool
+    ETC: bool
+    AET: bool
+    AET_Some: bool
+    ETL: bool
+    HOT: bool
+    Is_Static: bool
+    Peak_Period: bool
+    Real_Time: bool
+
+
+class Facility_Type(enum.Enum):
+    """Facility Type"""
+
+    Other = 0
+    Bridge = 1
+    Tunnel = 2
+    Road = 3
+
+
+class Toll_Rate_Model(pydantic.BaseModel):
+    State_Or_Province: str
+    Facility_Label: str
+    Toll_Operator: str
+    Facility_Type: str
+    Road_Type: str
+    Interstate: bool
+    Facility_Open_Date: str
+    Revenue_Lane_Miles: float
+    Revenue: float
+    Length_Miles: float
+    Lane: float
+    Source_Type: str
+    Reference: str
+    Year: int
+
+
+def read_csvfile(path: str) -> None:
     """Reads in the CSV file and returns the data"""
-    a: typing.List[str] = []
-    b: typing.List[str] = []
 
     with open(path, encoding="utf-8", newline="") as file:
         reader = csv.DictReader(file)
         for row in reader:
-            a.append(row["A"])
-            b.append(row["B"])
+            pass
 
-    return a, b
+    dbname = os.environ["POSTGRES_DB"]
+    username = os.environ["POSTGRES_USER"]
+    with psycopg.connect(f"dbname={dbname} user={username}"):
+        pass
 
 
 def main() -> None:
