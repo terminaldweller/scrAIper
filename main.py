@@ -33,23 +33,23 @@ class Argparser:  # pylint: disable=too-few-public-methods
 
 
 class Toll_Facilitie_Model(pydantic.BaseModel):
-    Country: str
-    IBTAA_Facility: str
-    IBTTA_TollOperator: str
-    Facility_Type: str
-    Interstate: bool
-    FacilityOpenDate: str
-    IBTTA_Center_Miles: pydantic.positive_float
-    Ort: bool
-    Cash: bool
-    ETC: bool
-    AET: bool
-    AET_Some: bool
-    ETL: bool
-    HOT: bool
-    Is_Static: bool
-    Peak_Period: bool
-    Real_Time: bool
+    Country: str = "United States"
+    IBTAA_Facility: str = ""
+    IBTTA_TollOperator: str = ""
+    Facility_Type: str = ""
+    Interstate: bool = False
+    FacilityOpenDate: str = ""
+    IBTTA_Center_Miles: float = 0.0
+    Ort: bool = False
+    Cash: bool = False
+    ETC: bool = False
+    AET: bool = False
+    AET_Some: bool = False
+    ETL: bool = False
+    HOT: bool = False
+    Is_Static: bool = False
+    Peak_Period: bool = False
+    Real_Time: bool = False
 
 
 class Facility_Type(enum.Enum):
@@ -62,20 +62,20 @@ class Facility_Type(enum.Enum):
 
 
 class Toll_Rate_Model(pydantic.BaseModel):
-    State_Or_Province: str
-    Facility_Label: str
-    Toll_Operator: str
-    Facility_Type: str
-    Road_Type: str
-    Interstate: bool
-    Facility_Open_Date: str
-    Revenue_Lane_Miles: float
-    Revenue: float
-    Length_Miles: float
-    Lane: float
-    Source_Type: str
-    Reference: str
-    Year: int
+    State_Or_Province: str = ""
+    Facility_Label: str = ""
+    Toll_Operator: str = ""
+    Facility_type: Facility_Type = Facility_Type.Other
+    Road_type: str = ""
+    Interstate: bool = False
+    Facility_open_date: str = ""
+    Revenue_lane_Miles: float = 0.0
+    Revenue: float = 0.0
+    Length_Miles: float = 0.0
+    Lane: float = 0.0
+    Source_Type: str = ""
+    Reference: str = ""
+    Year: int = 0
 
 
 def read_csvfile(path: str) -> None:
@@ -84,7 +84,7 @@ def read_csvfile(path: str) -> None:
     with open(path, encoding="utf-8", newline="") as file:
         reader = csv.DictReader(file)
         for row in reader:
-            pass
+            toll_rate_model = Toll_Rate_Model(**row)
 
     dbname = os.environ["POSTGRES_DB"]
     username = os.environ["POSTGRES_USER"]
