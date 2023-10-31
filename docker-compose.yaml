@@ -17,7 +17,14 @@ services:
       - scrapenet
     cap_drop:
       - ALL
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-behnoush}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-tolls}
     env_file: .env
+    volumes:
+      - ./csvs:/csvs:ro
+    command: ["--csv", "/csvs/road_tolls.csv"]
   postgres:
     image: postgres:16-alpine3.18
     deploy:

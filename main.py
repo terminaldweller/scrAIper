@@ -55,10 +55,10 @@ class Toll_Facilitie_Model(pydantic.BaseModel):
 class Facility_Type(enum.Enum):
     """Facility Type"""
 
-    Other = 0
-    Bridge = 1
-    Tunnel = 2
-    Road = 3
+    Other = "Other"
+    Bridge = "Bridge"
+    Tunnel = "Tunnel"
+    Road = "Road"
 
 
 class Toll_Rate_Model(pydantic.BaseModel):
@@ -77,19 +77,33 @@ class Toll_Rate_Model(pydantic.BaseModel):
     Reference: str = ""
     Year: int = 0
 
+    @pydantic.validator("Revenue", pre=True)
+    def remove_commas(cls, value: str) -> float:
+        """Removes commas from the value"""
+        return float(value.replace(",", ""))
+
 
 def read_csvfile(path: str) -> None:
     """Reads in the CSV file and returns the data"""
+    toll_road_models: typing.List[Toll_Rate_Model] = []
 
     with open(path, encoding="utf-8", newline="") as file:
-        reader = csv.DictReader(file)
+        reader = csv.DictReader(file, delimiter="|")
+        next(reader)
         for row in reader:
             toll_rate_model = Toll_Rate_Model(**row)
+            toll_road_models.append(toll_rate_model)
 
     dbname = os.environ["POSTGRES_DB"]
     username = os.environ["POSTGRES_USER"]
-    with psycopg.connect(f"dbname={dbname} user={username}"):
-        pass
+    password = os.environ["POSTGRES_PASSWORD"]
+    with psycopg.connect(
+        f"dbname={dbname} user={username} host=postgres password={password}"
+    ) as conn:
+        cursor = conn.cursor()
+        cursor.executemany("INSERT INTO toll_facilities VALUES (%s)", toll_road_models)
+        # cursor.execute("INSERT INTO toll_facilities VALUES (%s)", toll_road_models)
+        # result = cursor.fetchall()
 
 
 def main() -> None:
@@ -111,8 +125,9 @@ def main() -> None:
             "offices": [{"name": "string", "address": "string", "phone": "string"}],
         }
     )
-    resp = scrape_legislators("https://www.ilga.gov/house/rep.asp?MemberID=3071")
-    print(resp.data)
+    # resp = scrape_legislators("https://www.ilga.gov/house/rep.asp?MemberID=3071")
+    # print(resp.data)
+    read_csvfile(argparser.args.csv)
 
 
 if __name__ == "__main__":
