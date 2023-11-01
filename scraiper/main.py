@@ -2,8 +2,10 @@
 """A web scraper, maybe using AI"""
 
 import argparse
+import concurrent.futures
 import csv
 import enum
+import functools
 import logging
 import os
 import sys
@@ -83,6 +85,27 @@ class Toll_Rate_Model(pydantic.BaseModel):
         return float(value.replace(",", ""))
 
 
+def single_scrape(scrape_legislators, url: str) -> typing.Tuple[int, int]:
+    try:
+        resp = scrape_legislators(url)
+        print(resp.data)
+        result = resp.data
+    except:
+        result = ""
+    return result
+
+
+def multi_scrape(
+    max_workers: int,
+    scrape_legislators,
+    urls: typing.List[str],
+) -> typing.List[typing.Tuple[int, int]]:
+    func = functools.partial(single_scrape, scrape_legislators)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+        results = list(pool.map(func, urls))
+    return results
+
+
 def read_csvfile(path: str) -> None:
     """Reads in the CSV file and returns the data"""
     toll_road_models: typing.List[Toll_Rate_Model] = []
@@ -97,13 +120,18 @@ def read_csvfile(path: str) -> None:
     dbname = os.environ["POSTGRES_DB"]
     username = os.environ["POSTGRES_USER"]
     password = os.environ["POSTGRES_PASSWORD"]
+
+    toll_road_models_dicts = [model.dict() for model in toll_road_models]
     with psycopg.connect(
         f"dbname={dbname} user={username} host=postgres password={password}"
     ) as conn:
         cursor = conn.cursor()
-        cursor.executemany("INSERT INTO toll_facilities VALUES (%s)", toll_road_models)
-        # cursor.execute("INSERT INTO toll_facilities VALUES (%s)", toll_road_models)
-        # result = cursor.fetchall()
+        query: str = """
+INSERT INTO toll_facilities
+(State_Or_Province, Facility_Label, Toll_Operator, Facility_type, Road_type, Interstate, Facility_open_date, Revenue_lane_Miles, Revenue, Length_Miles, Lane, Source_Type, Reference, Year)
+VALUES  (%(State_Or_Province)s, %(Facility_Label)s, %(Toll_Operator)s, %(Facility_type)s, %(Road_type)s, %(Interstate)s, %(Facility_open_date)s, %(Revenue_lane_Miles)s, %(Revenue)s, %Length_Miles)s, %(Lane)s, %(Source_Type)s, %(Reference)s, %(Year)s)
+"""
+        cursor.executemany(query, toll_road_models_dicts)
 
 
 def main() -> None:
@@ -119,10 +147,10 @@ def main() -> None:
         schema={
             "name": "string",
             "url": "url",
-            "district": "string",
-            "party": "string",
-            "photo_url": "url",
-            "offices": [{"name": "string", "address": "string", "phone": "string"}],
+            "Operation_Hour": "string",
+            "Is_Reversible": "string",
+            "Toll_Rate": "url",
+            "Vehicle_Type": "string",
         }
     )
     # resp = scrape_legislators("https://www.ilga.gov/house/rep.asp?MemberID=3071")

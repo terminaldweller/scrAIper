@@ -1,0 +1,7 @@
+SELECT 'CREATE DATABASE tolls'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'irc')\gexec
+
+CREATE TABLE IF NOT EXISTS tolls (
+    id SERIAL PRIMARY KEY,
+    last_modified TIMESTAMP NOT NULL DEFAULT NOW()
+);

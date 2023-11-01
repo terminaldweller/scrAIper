@@ -2,7 +2,7 @@ version: "3.9"
 services:
   scraiper:
     build:
-      context: .
+      context: ./scraiper
     deploy:
       resources:
         limits:
@@ -24,7 +24,26 @@ services:
     env_file: .env
     volumes:
       - ./csvs:/csvs:ro
-    command: ["--csv", "/csvs/road_tolls.csv"]
+    command: ["--csv", "./scraiper/csvs/road_tolls.csv"]
+  scraiper_api:
+    build:
+      context: ./scraiper_api
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+    image: scraiper_api
+    restart: unless-stopped
+    networks:
+      - apinet
+    cap_drop:
+      - ALL
+    env_file: .env
+    entrypoint: ["/docker-entrypoint.sh"]
   postgres:
     image: postgres:16-alpine3.18
     deploy:
@@ -48,7 +67,35 @@ services:
       - ./scripts/:/docker-entrypoint-initdb.d/
     networks:
       - scrapenet
+      - dbnet
+      - apinet
+  pgadmin:
+    image: dpage/pgadmin4:7.8
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+    environment:
+      - PGADMIN_LISTEN_PORT=${PGADMIN_LISTEN_PORT:-5050}
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-devi@terminaldweller.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:-changeme}
+      - PGADMIN_DISABLE_POSTFIX=${PGADMIN_DISABLE_POSTFIX:-YES}
+    env_file: .env
+    ports:
+      - "[::1]:5050:5050/tcp"
+    restart: unless-stopped
+    volumes:
+      - pgadmin-vault:/var/lib/pgadmin
+    networks:
+      - dbnet
 volumes:
   postgres-vault:
+  pgadmin-vault:
 networks:
   scrapenet:
+  dbnet:
+  apinet:
