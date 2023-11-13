@@ -6,7 +6,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1024M
+          memory: 4096M
     logging:
       driver: "json-file"
       options:
@@ -23,8 +23,8 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-tolls}
     env_file: .env
     volumes:
-      - ./csvs:/csvs:ro
-    command: ["--csv", "./scraiper/csvs/road_tolls.csv"]
+      - ./scraiper/csvs:/csvs:ro
+    # command: ["--csv", "/csvs/road_tolls.csv"]
   scraiper_api:
     build:
       context: ./scraiper_api
@@ -38,12 +38,14 @@ services:
         max-size: "200m"
     image: scraiper_api
     restart: unless-stopped
+    ports:
+      - "[::1]:8008:8000/tcp"
     networks:
       - apinet
     cap_drop:
       - ALL
     env_file: .env
-    entrypoint: ["/docker-entrypoint.sh"]
+    # entrypoint: ["/docker-entrypoint.sh"]
   postgres:
     image: postgres:16-alpine3.18
     deploy:
@@ -55,7 +57,7 @@ services:
       options:
         max-size: "200m"
     ports:
-      - "[::1]:5432:5432/tcp"
+      - "[::1]:5422:5432/tcp"
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-behnoush}

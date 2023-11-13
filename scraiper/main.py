@@ -6,6 +6,7 @@ import concurrent.futures
 import csv
 import enum
 import functools
+import hashlib
 import logging
 import os
 import sys
@@ -16,6 +17,7 @@ import psycopg
 import psycopg_pool
 import pydantic
 from scrapeghost import SchemaScraper
+import tabula
 
 
 class Argparser:  # pylint: disable=too-few-public-methods
@@ -129,9 +131,15 @@ def read_csvfile(path: str) -> None:
         query: str = """
 INSERT INTO toll_facilities
 (State_Or_Province, Facility_Label, Toll_Operator, Facility_type, Road_type, Interstate, Facility_open_date, Revenue_lane_Miles, Revenue, Length_Miles, Lane, Source_Type, Reference, Year)
-VALUES  (%(State_Or_Province)s, %(Facility_Label)s, %(Toll_Operator)s, %(Facility_type)s, %(Road_type)s, %(Interstate)s, %(Facility_open_date)s, %(Revenue_lane_Miles)s, %(Revenue)s, %Length_Miles)s, %(Lane)s, %(Source_Type)s, %(Reference)s, %(Year)s)
+VALUES  (%(State_Or_Province)s, %(Facility_Label)s, %(Toll_Operator)s, %(Facility_type)s, %(Road_type)s, %(Interstate)s, %(Facility_open_date)s, %(Revenue_lane_Miles)s, %(Revenue)s, %(Length_Miles)s, %(Lane)s, %(Source_Type)s, %(Reference)s, %(Year)s)
 """
         cursor.executemany(query, toll_road_models_dicts)
+
+
+def scrape_all(cursor) -> None:
+    query = """
+select Reference from public.toll_facilities;
+    """
 
 
 def main() -> None:
@@ -146,7 +154,6 @@ def main() -> None:
     scrape_legislators = SchemaScraper(
         schema={
             "name": "string",
-            "url": "url",
             "Operation_Hour": "string",
             "Is_Reversible": "string",
             "Toll_Rate": "url",
@@ -155,7 +162,17 @@ def main() -> None:
     )
     # resp = scrape_legislators("https://www.ilga.gov/house/rep.asp?MemberID=3071")
     # print(resp.data)
-    read_csvfile(argparser.args.csv)
+    if argparser.args.csv:
+        read_csvfile(argparser.args.csv)
+
+    dfs = tabula.read_pdf(
+        "https://floridasturnpike.com/wp-content/uploads/2022/12/FY_2022_Floridas_Turnpike_Enterprise_ACFR.pdf",
+        pages="all",
+    )
+    print(dfs)
+    hashlib.md5(
+        "https://floridasturnpike.com/wp-content/uploads/2022/12/FY_2022_Floridas_Turnpike_Enterprise_ACFR.pdf"
+    )
 
 
 if __name__ == "__main__":

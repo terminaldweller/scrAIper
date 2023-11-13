@@ -1,9 +1,11 @@
+#!/usr/bin/python
 # _*_ coding=utf-8 _*_
 """API server for scraiper."""
 
 import logging
 import os
 import typing
+import uvicorn
 
 import fastapi
 import requests  # type:ignore
@@ -47,9 +49,7 @@ def simple_get(url: str) -> bytes:
 def get_with_params(url: str, params: dict) -> typing.Optional[dict]:
     """Issues a get request with params."""
     try:
-        with contextlib.closing(
-            requests.get(url, params=params, stream=True)
-        ) as resp:
+        with contextlib.closing(requests.get(url, params=params, stream=True)) as resp:
             if is_a_good_response(resp):
                 return resp.json()
             return None
@@ -73,11 +73,10 @@ app = fastapi.FastAPI(
     openapi_tags=TAGS_METADATA,
 )
 
+
 # https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html
 @app.middleware("http")
-async def add_secure_headers(
-    request: fastapi.Request, call_next
-) -> fastapi.Response:
+async def add_secure_headers(request: fastapi.Request, call_next) -> fastapi.Response:
     """Adds security headers proposed by OWASP."""
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store"
@@ -111,3 +110,7 @@ def robots_ep():
         "User-Agents": "*",
         "Disallow": "/",
     }
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

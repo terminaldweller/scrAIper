@@ -29,5 +29,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends libpq5
 COPY --from=certbuilder /certs/ /certs
 COPY --from=builder-base $VENV_PATH $VENV_PATH
 COPY ./api.py $PYSETUP_PATH/api.py
-COPY ./docker-entrypoint.sh /docker-entrypoint.sh
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# COPY ./docker-entrypoint.sh /docker-entrypoint.sh
+# ENTRYPOINT ["/docker-entrypoint.sh"]
+ENTRYPOINT ["python", "/api/api.py"]
