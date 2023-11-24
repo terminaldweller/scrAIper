@@ -24,7 +24,7 @@ services:
     env_file: .env
     volumes:
       - ./scraiper/csvs:/csvs:ro
-    # command: ["--csv", "/csvs/road_tolls.csv"]
+    command: ["--csv", "/csvs/road_tolls.csv"]
   scraiper_api:
     build:
       context: ./scraiper_api
