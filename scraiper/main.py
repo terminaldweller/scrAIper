@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import sys
+import time
 import typing
 import urllib.parse
 
@@ -47,26 +48,6 @@ class Argparser:  # pylint: disable=too-few-public-methods
         self.args = parser.parse_args()
 
 
-# class TollFacilitieModel(pydantic.BaseModel):
-#     Country: str = "United States"
-#     IBTAA_Facility: str = ""
-#     IBTTA_TollOperator: str = ""
-#     FacilityType: str = ""
-#     Interstate: bool = False
-#     FacilityOpenDate: str = ""
-#     IBTTA_Center_Miles: float = 0.0
-#     Ort: bool = False
-#     Cash: bool = False
-#     ETC: bool = False
-#     AET: bool = False
-#     AET_Some: bool = False
-#     ETL: bool = False
-#     HOT: bool = False
-#     Is_Static: bool = False
-#     Peak_Period: bool = False
-#     Real_Time: bool = False
-
-
 class FacilityType(enum.Enum):
     """Facility Type"""
 
@@ -94,23 +75,57 @@ class TollRateModel(pydantic.BaseModel):
     Reference: str = ""
     Year: int = 0
 
+    @pydantic.validator("State_Or_Province", pre=True)
+    def ignore_facility_label(cls, value: str) -> str:
+        try:
+            return value
+        except (ValueError, TypeError):
+            return ""
+
+    @pydantic.validator("Interstate", pre=True)
+    def ignore_interstate(cls, value: str) -> bool:
+        try:
+            if value.lower() == "yes":
+                return True
+            elif value.lower() == "no":
+                return False
+            return False
+        except (ValueError, TypeError):
+            return False
+
     @pydantic.validator("Revenue", pre=True)
-    def remove_commas(cls, value: str) -> float:
-        """Removes commas from the value"""
-        return float(value.replace(",", ""))
+    def ignore_revenue(cls, value: str) -> float:
+        try:
+            return float(value.replace(",", ""))
+        except (ValueError, TypeError):
+            return 0.0
+
+    @pydantic.validator("Year", pre=True)
+    def ignore_year(cls, value: str) -> int:
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return 0
+
+    @pydantic.validator("Lane", pre=True)
+    def ignore_lane(cls, value: str) -> float:
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return 0.0
 
 
 def get_proxies() -> typing.Dict:
     """Get the proxy env vars."""
-    http_proxy: typing.Optional[str] = None
+    http_proxy: typing.Optional[str] = ""
     if "HTTP_PROXY" in os.environ and os.environ["HTTP_PROXY"] != "":
         http_proxy = os.environ["HTTP_PROXY"]
 
-    https_proxy: typing.Optional[str] = None
+    https_proxy: typing.Optional[str] = ""
     if "HTTPS_PROXY" in os.environ and os.environ["HTTPS_PROXY"] != "":
         https_proxy = os.environ["HTTPS_PROXY"]
 
-    no_proxy: typing.Optional[str] = None
+    no_proxy: typing.Optional[str] = ""
     if "NO_PROXY" in os.environ and os.environ["NO_PROXY"] != "":
         no_proxy = os.environ["NO_PROXY"]
 
@@ -157,16 +172,22 @@ def get_headers() -> typing.Dict[str, str]:
 def single_get(url: str) -> None:
     """Get one pdf file.""" ""
     try:
-        response = requests.get(
-            url,
-            allow_redirects=True,
-            timeout=10,
-            proxies=get_proxies(),
-            headers=get_headers(),
-        )
-        if response.status_code == 200:
-            with open(f"/pdfs/{get_pdf_hash(url)}.pdf", "wb") as file:
-                file.write(response.content)
+        backoff: int = 2
+        backoff_multiplier: int = 2
+        while True:
+            response = requests.get(
+                url,
+                allow_redirects=True,
+                timeout=10,
+                proxies=get_proxies(),
+                headers=get_headers(),
+            )
+            if response.ok:
+                with open(f"/pdfs/{get_pdf_hash(url)}.pdf", "wb") as file:
+                    file.write(response.content)
+                break
+            time.sleep(backoff)
+            backoff = backoff * backoff_multiplier
     except Exception as e:  # pylint: disable=broad-except
         logging.fatal("was not able to get %s. error: %s", url, e)
 
@@ -202,15 +223,7 @@ def read_csvfile(path: str, cursor) -> None:
             toll_rate_model = TollRateModel(**row)
             toll_road_models.append(toll_rate_model)
 
-    # dbname = os.environ["POSTGRES_DB"]
-    # username = os.environ["POSTGRES_USER"]
-    # password = os.environ["POSTGRES_PASSWORD"]
-
     toll_road_models_dicts = [model.dict() for model in toll_road_models]
-    # with psycopg.connect(
-    #     f"dbname={dbname} user={username} host=postgres password={password}"
-    # ) as conn:
-    #     with conn.cursor() as cursor:
     query: str = """
 INSERT INTO toll_facilities
 (State_Or_Province, Facility_Label, Toll_Operator, Facility_type, Road_type, Interstate, Facility_open_date, Revenue_lane_Miles, Revenue, Length_Miles, Lane, Source_Type, Reference, Year)
@@ -287,20 +300,20 @@ SELECT DISTINCT Reference FROM public.toll_facilities;
             if argparser.args.csv:
                 read_csvfile(argparser.args.csv, cursor)
 
-            print(
-                get_pdf_hash(
-                    """
-                    https://floridasturnpike.com/wp-content/uploads/2022/12/FY_2022_Floridas_Turnpike_Enterprise_ACFR.pdf
-                    """
-                )
-            )
-            dfs = tabula.read_pdf(
-                """
-                https://floridasturnpike.com/wp-content/uploads/2022/12/FY_2022_Floridas_Turnpike_Enterprise_ACFR.pdf
-                """,
-                pages="all",
-            )
-            print(dfs)
+            # print(
+            #     get_pdf_hash(
+            #         """
+            #         https://floridasturnpike.com/wp-content/uploads/2022/12/FY_2022_Floridas_Turnpike_Enterprise_ACFR.pdf
+            #         """
+            #     )
+            # )
+            # dfs = tabula.read_pdf(
+            #     """
+            #     https://floridasturnpike.com/wp-content/uploads/2022/12/FY_2022_Floridas_Turnpike_Enterprise_ACFR.pdf
+            #     """,
+            #     pages="all",
+            # )
+            # print(dfs)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ RUN apt update && apt install -y --no-install-recommends curl build-essential
 RUN curl -sSL https://install.python-poetry.org | python -
 WORKDIR $PYSETUP_PATH
 COPY ./pyproject.toml ./
+COPY ./poetry.lock ./
 RUN poetry install --no-dev
 
 FROM alpine:3.18 AS certbuilder

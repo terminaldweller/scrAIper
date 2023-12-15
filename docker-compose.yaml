@@ -12,7 +12,7 @@ services:
       options:
         max-size: "200m"
     image: scraiper
-    restart: unless-stopped
+    # restart: unless-stopped
     networks:
       - scrapenet
     cap_drop:
@@ -21,10 +21,12 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-behnoush}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
       - POSTGRES_DB=${POSTGRES_DB:-tolls}
+      - https_proxy=http://172.17.0.1:9007
     env_file: .env
     volumes:
       - ./scraiper/csvs:/csvs:ro
-    command: ["--csv", "/csvs/road_tolls.csv"]
+      - pdf_vault:/pdfs
+    command: ["--csv", "/csvs/data.csv"]
   scraiper_api:
     build:
       context: ./scraiper_api
@@ -37,7 +39,7 @@ services:
       options:
         max-size: "200m"
     image: scraiper_api
-    restart: unless-stopped
+    # restart: unless-stopped
     ports:
       - "[::1]:8008:8000/tcp"
     networks:
@@ -66,13 +68,13 @@ services:
     env_file: .env
     volumes:
       - postgres-vault:/var/lib/postgresql/data
-      - ./scripts/:/docker-entrypoint-initdb.d/
+      - ./scripts/:/docker-entrypoint-initdb.d
     networks:
       - scrapenet
       - dbnet
       - apinet
   pgadmin:
-    image: dpage/pgadmin4:7.8
+    image: dpage/pgadmin4:8.0
     deploy:
       resources:
         limits:
@@ -97,6 +99,7 @@ services:
 volumes:
   postgres-vault:
   pgadmin-vault:
+  pdf_vault:
 networks:
   scrapenet:
   dbnet:
