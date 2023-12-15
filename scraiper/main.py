@@ -215,6 +215,7 @@ def multi_scrape(
 def read_csvfile(path: str, cursor) -> None:
     """Reads in the CSV file and returns the data"""
     toll_road_models: typing.List[TollRateModel] = []
+    epoch_time = int(time.time())
 
     with open(path, encoding="utf-8", newline="") as file:
         reader = csv.DictReader(file, delimiter="|")
@@ -223,9 +224,39 @@ def read_csvfile(path: str, cursor) -> None:
             toll_rate_model = TollRateModel(**row)
             toll_road_models.append(toll_rate_model)
 
+    create_main_table_query = """
+CREATE TABLE IF NOT EXISTS toll_facility_history (
+	event_time bigint NOT NULL PRIMARY KEY
+);
+"""
+    cursor.execute(create_main_table_query)
+    create_table_query = f"""
+CREATE TABLE IF NOT EXISTS toll_facilities_{epoch_time} (
+    id SERIAL PRIMARY KEY,
+    state_or_province VARCHAR(255) NOT NULL,
+    facility_label VARCHAR(255) NOT NULL,
+    toll_operator VARCHAR(255) NOT NULL,
+    facility_type VARCHAR(255) NOT NULL,
+    road_type VARCHAR(255) NOT NULL,
+    interstate boolean NOT NULL,
+    facility_open_date VARCHAR(255) NOT NULL,
+    revenue_lane_miles float NOT NULL,
+    revenue float NOT NULL,
+    length_miles float NOT NULL,
+    lane float NOT NULL,
+    source_type VARCHAR(255) NOT NULL,
+    reference VARCHAR(255) NOT NULL,
+    year integer NOT NULL
+);
+    """
+    cursor.execute(create_table_query)
+    update_main_query = f"""
+INSERT INTO toll_facility_history (event_time) VALUES ({epoch_time});
+    """
+    cursor.execute(update_main_query)
     toll_road_models_dicts = [model.dict() for model in toll_road_models]
-    query: str = """
-INSERT INTO toll_facilities
+    query: str = f"""
+INSERT INTO toll_facilities_{epoch_time}
 (State_Or_Province, Facility_Label, Toll_Operator, Facility_type, Road_type, Interstate, Facility_open_date, Revenue_lane_Miles, Revenue, Length_Miles, Lane, Source_Type, Reference, Year)
 VALUES  (%(State_Or_Province)s, %(Facility_Label)s, %(Toll_Operator)s, %(Facility_type)s, %(Road_type)s, %(Interstate)s, %(Facility_open_date)s, %(Revenue_lane_Miles)s, %(Revenue)s, %(Length_Miles)s, %(Lane)s, %(Source_Type)s, %(Reference)s, %(Year)s)
 """
