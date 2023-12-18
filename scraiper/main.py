@@ -172,7 +172,7 @@ def get_headers() -> typing.Dict[str, str]:
 def single_get(url: str) -> None:
     """Get one pdf file.""" ""
     try:
-        backoff: int = 2
+        backoff: int = 15
         backoff_multiplier: int = 2
         while True:
             response = requests.get(
