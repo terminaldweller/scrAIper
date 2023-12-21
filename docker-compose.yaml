@@ -96,6 +96,27 @@ services:
       - pgadmin-vault:/var/lib/pgadmin
     networks:
       - dbnet
+  pdf2json:
+    image: pdf2json
+    build:
+      context: ./pdf2json
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+    networks:
+      - scrapenet
+    restart: unless-stopped
+    ports:
+      - "[::1]:3003:3003/tcp"
+    cap_drop:
+      - ALL
+    environment:
+      - SERVER_LISTEN_PORT=3003
 volumes:
   postgres-vault:
   pgadmin-vault:

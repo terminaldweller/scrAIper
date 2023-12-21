@@ -29,3 +29,6 @@ docker compose down
 ```sh
 git pull 
 ```
+
+## pgadmin
+open up a browser and go to 'localhost:5050' and login with the credentials in the `.env` file.
