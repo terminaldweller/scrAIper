@@ -14,16 +14,16 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 
-const pdfParser = new PDFParser();
-
 async function getPdfFromUrl(url) {
   try {
-    console.log("Downloading " + url);
     const response = await axios.get(url, { responseType: "arraybuffer" });
     const pdfContents = response.data;
     const hash = crypt.createHash("sha256");
     const hashValue = hash.update(pdfContents).digest("hex");
-    // pdfParser.loadPDF(hashValue + ".pdf");
+
+    fs.writeFileSync(hashValue + ".pdf", pdfContents, "binary");
+
+    const pdfParser = new PDFParser();
     const inputStream = fs.createReadStream(hashValue + ".pdf", {
       bufferSize: 64 * 1024,
     });
@@ -32,8 +32,7 @@ async function getPdfFromUrl(url) {
       .pipe(pdfParser.createParserStream())
       .pipe(new StringifyStream())
       .pipe(outputStream);
-    const jsonFile = fs.readSync(hashValue + ".json");
-    return jsonFile;
+    return hashValue;
   } catch (error) {
     console.error(url + ":" + error);
   }
@@ -41,9 +40,12 @@ async function getPdfFromUrl(url) {
 
 app.post("/api/v1/conv", async (req, res) => {
   const pdfURL = req.body.url;
-  console.log(pdfURL);
-  const jsonFile = await getPdfFromUrl(pdfURL);
-  res.send({ jsonFile });
+  const pdfHash = await getPdfFromUrl(pdfURL);
+  const data = fs.readFileSync(pdfHash + ".json", "utf8");
+  const jsonData = JSON.parse(data);
+  const transformedData = JSON.stringify(jsonData);
+  res.header("Content-Type", "application/json");
+  res.json({ transformedData });
 });
 
 const port = process.env.SERVER_LISTEN_PORT || 3000;
