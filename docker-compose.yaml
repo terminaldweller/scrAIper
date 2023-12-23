@@ -21,7 +21,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-behnoush}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
       - POSTGRES_DB=${POSTGRES_DB:-tolls}
-      - https_proxy=http://172.17.0.1:9007
+      # - https_proxy=http://172.17.0.1:9007
     env_file: .env
     volumes:
       - ./scraiper/csvs:/csvs:ro
@@ -117,6 +117,9 @@ services:
       - ALL
     environment:
       - SERVER_LISTEN_PORT=3003
+      - PROXY_PROTOCOL=https
+      - PROXY_HOST=http://172.17.0.1
+      - PROXY_PORT=8120
 volumes:
   postgres-vault:
   pgadmin-vault:

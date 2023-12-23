@@ -320,16 +320,26 @@ SELECT DISTINCT Reference FROM public.toll_facilities;
                     ]
                 )
             ]
-            for url in urls:
-                print(url)
 
-            if not os.path.exists("/pdfs"):
-                os.makedirs("/pdfs")
-            multi_get(urls)
+            for url in urls[:4]:
+                print(url)
+                data = {"url": f"{url}"}
+                print(data)
+                response = requests.post(
+                    "http://pdf2json:3003/api/v1/conv", data=data, timeout=30
+                )
+                print(response.content)
+
+            # if not os.path.exists("/pdfs"):
+            #     os.makedirs("/pdfs")
+
+            # multi_get(urls)
+
             # resp = scrape_legislators("https://www.ilga.gov/house/rep.asp?MemberID=3071")
             # print(resp.data)
-            if argparser.args.csv:
-                read_csvfile(argparser.args.csv, cursor)
+
+            # if argparser.args.csv:
+            #     read_csvfile(argparser.args.csv, cursor)
 
             # print(
             #     get_pdf_hash(
