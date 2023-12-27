@@ -9,11 +9,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const crypt = require("crypto");
 const StringifyStream = require("stringifystream");
-// const ProxyAgent = require("proxy-agent").ProxyAgent;
 const morgan = require("morgan");
-
-// const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
-// const proxyAgent = new ProxyAgent(proxy);
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));

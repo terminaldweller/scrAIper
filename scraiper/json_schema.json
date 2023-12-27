@@ -1,0 +1,21 @@
+{
+    "$schema":"http://json-schema.org/draft/2020-12/schema",
+    "type":"object",
+    "properties":{
+        "facility_label":{
+            "type":"string"
+        },
+        "Operation_Hour":{
+            "type":"string"
+        },
+        "Is_Reversible":{
+            "type":"string"
+        },
+        "Toll_Rate":{
+            "type":"string"
+        },
+        "Vehicle_Type":{
+            "type":"string"
+        }
+    }
+}

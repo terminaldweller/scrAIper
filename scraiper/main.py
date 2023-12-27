@@ -276,26 +276,42 @@ def get_pdf_hash(url: str) -> str:
     return hashlib.md5(url.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
+def ai_request(json_str: str) -> None:
+    """Makes an AI request"""
+    json_schema: str = ""
+    with open("/json_schema.json", "r", encoding="utf-8") as json_file:
+        json_schema = json_file.read()
+    prompt = f"""
+```
+{json_str}
+```
+For the given text, can you provide a JSON representation that strictly follows this schema:
+```
+{json_schema}
+```
+"""
+    response = openai.Completion.create(
+        model="text-davinci-003",
+        prompt=prompt,
+        temperature=0.1,
+        stop=["\n"],
+    )
+    print(response)
+    return response
+
+
 argparser = Argparser()
 
 
 def main() -> None:
     """The entrypoint"""
+    # client = openai.AsynchronousClient()
     openai.api_key = os.environ["OPENAI_API_KEY"]
     if openai.api_key == "":
         logging.critical(
             "no openai api key set in the environment variable OPENAI_API_KEY. exiting ..."
         )
         sys.exit(1)
-    # scrape_legislators = SchemaScraper(
-    #     schema={
-    #         "name": "string",
-    #         "Operation_Hour": "string",
-    #         "Is_Reversible": "string",
-    #         "Toll_Rate": "url",
-    #         "Vehicle_Type": "string",
-    #     }
-    # )
 
     dbname = os.environ["POSTGRES_DB"]
     username = os.environ["POSTGRES_USER"]
@@ -309,7 +325,6 @@ SELECT DISTINCT Reference FROM public.toll_facilities;
             """
             cursor.execute(query)
             res = cursor.fetchall()
-            # print(res)
             urls = [
                 url[0]
                 for url in res
@@ -328,33 +343,8 @@ SELECT DISTINCT Reference FROM public.toll_facilities;
                 response = requests.post(
                     "http://pdf2json:3003/api/v1/conv", data=data, timeout=30
                 )
-                print(response.content)
-
-            # if not os.path.exists("/pdfs"):
-            #     os.makedirs("/pdfs")
-
-            # multi_get(urls)
-
-            # resp = scrape_legislators("https://www.ilga.gov/house/rep.asp?MemberID=3071")
-            # print(resp.data)
-
-            # if argparser.args.csv:
-            #     read_csvfile(argparser.args.csv, cursor)
-
-            # print(
-            #     get_pdf_hash(
-            #         """
-            #         https://floridasturnpike.com/wp-content/uploads/2022/12/FY_2022_Floridas_Turnpike_Enterprise_ACFR.pdf
-            #         """
-            #     )
-            # )
-            # dfs = tabula.read_pdf(
-            #     """
-            #     https://floridasturnpike.com/wp-content/uploads/2022/12/FY_2022_Floridas_Turnpike_Enterprise_ACFR.pdf
-            #     """,
-            #     pages="all",
-            # )
-            # print(dfs)
+                # print(response.content)
+                ai_request(response.content)
 
 
 if __name__ == "__main__":

@@ -30,4 +30,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends libpq5 default-
 COPY --from=certbuilder /certs/ /certs
 COPY --from=builder-base $VENV_PATH $VENV_PATH
 COPY ./main.py $PYSETUP_PATH/main.py
+COPY ./json_schema.json /json_schema.json
 ENTRYPOINT ["/app/main.py"]
